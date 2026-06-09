@@ -1,73 +1,103 @@
-# React + TypeScript + Vite
+# Scheduler — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React single-page application for managing healthcare providers, their availability schedules, and patient appointments.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Layer | Technology |
+|---|---|
+| Framework | React 19 + TypeScript 6 |
+| Build tool | Vite 8 |
+| Routing | TanStack Router v1 (file-based) |
+| Server state | TanStack Query v5 |
+| Styling | Tailwind CSS v4 (Vite plugin, no config file needed) |
+| Icons | Lucide React |
+| State (client) | Zustand v5 |
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+
+- [pnpm](https://pnpm.io/)
 
-## Expanding the ESLint configuration
+## Getting started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev        # http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Environment variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8080` | Base URL for the REST API |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Create a `.env.local` file at the project root to override defaults:
+
+```env
+VITE_API_BASE_URL=https://api.your-domain.com
 ```
+
+## Commands
+
+```bash
+pnpm dev        # Start dev server with HMR
+pnpm build      # Type-check + production build (tsc -b && vite build)
+pnpm lint       # Run ESLint
+pnpm preview    # Preview the production build locally
+```
+
+## Project structure
+
+```
+src/
+├── api/                  # Fetch wrappers for each resource
+│   ├── client.ts         # Base HTTP client (HttpError, typed request())
+│   ├── providers.ts
+│   ├── schedules.ts
+│   └── appointments.ts
+├── hooks/                # TanStack Query hooks (queries + mutations)
+│   ├── providerQueries.ts
+│   ├── scheduleQueries.ts
+│   └── appointmentQueries.ts
+├── components/
+│   ├── ui/               # Generic UI primitives (Button, Badge, Input, Modal, Spinner, EmptyState)
+│   ├── layout/           # App shell (Sidebar)
+│   ├── providers/        # ProviderCard, ProviderForm
+│   ├── schedules/        # ScheduleItem, ScheduleForm
+│   └── appointments/     # AppointmentCard, AppointmentForm
+├── routes/               # TanStack Router file-based routes
+│   ├── __root.tsx        # Root layout (Sidebar + <Outlet />)
+│   ├── index.tsx         # Redirects / → /providers
+│   ├── providers/
+│   │   ├── index.tsx     # Provider list
+│   │   └── $providerId.tsx  # Provider detail + schedules
+│   └── appointments/
+│       └── index.tsx     # Appointment list
+├── types/                # Shared TypeScript interfaces
+│   ├── provider.ts
+│   ├── schedule.ts
+│   └── appointment.ts
+└── main.tsx              # App entry point
+```
+
+## Domain model
+
+**Provider** — a healthcare professional with an optional specialty, phone, and email. Can be active or inactive.
+
+**Schedule** — a time slot (`startTime` / `endTime`) belonging to a provider. Status is either `AVAILABLE` or `BOOKED`.
+
+**Appointment** — a booking created against an available schedule. Carries client contact details and a status of `PENDING`, `CONFIRMED`, or `CANCELLED`.
+
+## API
+
+All requests go through `src/api/client.ts`. The base URL is read from `VITE_API_BASE_URL` and defaults to `http://localhost:8080`. Errors are surfaced as `HttpError` instances with `status` and optional `errors` fields.
+
+## TypeScript
+
+- `tsconfig.app.json` enforces `noUnusedLocals`, `noUnusedParameters`, and `erasableSyntaxOnly`.
+- Use `verbatimModuleSyntax` — import types with `import type { … }`.
+
+## ESLint
+
+Flat config (`eslint.config.js`). The `@tanstack/eslint-plugin-query` package is installed — wire it in when extending lint coverage.
